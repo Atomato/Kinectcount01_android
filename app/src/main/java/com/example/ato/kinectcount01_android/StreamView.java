@@ -1,6 +1,7 @@
 package com.example.ato.kinectcount01_android;
 
 import android.graphics.Bitmap;
+import android.graphics.Rect;
 import android.view.View;
 import android.content.Context;
 import android.graphics.Canvas;
@@ -24,7 +25,8 @@ public class StreamView extends View {
     private int threshold;
     private int height;
     private int width;
-    public Bitmap depthBitmap = Bitmap.createBitmap(Var._DepthWidth, Var._DepthHeight, Bitmap.Config.ARGB_8888);
+    public Bitmap depthBitmap;
+    private Rect dst;
 
     public StreamView(Context context) {
         super(context);
@@ -40,12 +42,14 @@ public class StreamView extends View {
 
         x = new int[20];
         y = new int[20];
+
+        depthBitmap = Bitmap.createBitmap(Var._DepthWidth, Var._DepthHeight, Bitmap.Config.ARGB_8888);
     }
 
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        canvas.drawBitmap(depthBitmap,0,0, null);
+        canvas.drawBitmap(depthBitmap,null,dst,null);
         /*
         path.rewind();
         //Draw head and torso
@@ -98,6 +102,7 @@ public class StreamView extends View {
         height = yNew;
         width = xNew;
 
+        dst = new Rect(0,0,width,height);
         super.onSizeChanged(xNew, yNew, xOld, yOld);
     }
 
