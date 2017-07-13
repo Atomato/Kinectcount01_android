@@ -1,6 +1,8 @@
 package com.example.ato.kinectcount01_android;
 
 import android.annotation.TargetApi;
+import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
@@ -10,6 +12,7 @@ import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.LinearLayout;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -21,10 +24,12 @@ import android.widget.TextView;
 
 public class SkeletonStream extends AppCompatActivity {
     private Socket socket;
-    private BufferedReader socket_in;
+    //private BufferedReader socket_in;
+    private BufferedInputStream socket_in;
     private StreamView myView;
     private PrintWriter socket_out;
-    private String data;
+    //private String data;
+    private byte[] data = new byte[Var._DepthWidth*Var._DepthHeight/8];
     private String[] positions;
     private Handler handler;
     TextView breakTimeView;
@@ -80,7 +85,8 @@ public class SkeletonStream extends AppCompatActivity {
                 try {
                     socket = new Socket("192.168.0.9", 8200);
                     socket_out = new PrintWriter(socket.getOutputStream(), true);
-                    socket_in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    //socket_in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    socket_in = new BufferedInputStream(socket.getInputStream());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -90,8 +96,44 @@ public class SkeletonStream extends AppCompatActivity {
                             // 서버에 조인트 좌표 요청
                             socket_out.println("y");
 
-                            data = socket_in.readLine();
+                            int xIndex;
+                            int yIndex;
+                            int pixelData;
+
+                            int i = 0;
+                            if ((i = socket_in.read(data, 0, data.length)) != -1) {
+                                for (int j = 0; j < Var._DepthWidth*Var._DepthHeight/8; j++){
+                                    xIndex = j*8 % Var._DepthWidth;
+                                    yIndex = j*8 / Var._DepthWidth;
+
+                                    pixelData = ((data[j] & 0x01)) * 0xFF;
+                                    myView.depthBitmap.setPixel(xIndex, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+                                    pixelData = ((data[j] & 0x02) >> 1) * 0xFF;
+                                    myView.depthBitmap.setPixel(xIndex+1, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+                                    pixelData = ((data[j] & 0x04) >> 2) * 0xFF;
+                                    myView.depthBitmap.setPixel(xIndex+2, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+                                    pixelData = ((data[j] & 0x08) >> 3) * 0xFF;
+                                    myView.depthBitmap.setPixel(xIndex+3, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+                                    pixelData = ((data[j] & 0x10) >> 4) * 0xFF;
+                                    myView.depthBitmap.setPixel(xIndex+4, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+                                    pixelData = ((data[j] & 0x20) >> 5) * 0xFF;
+                                    myView.depthBitmap.setPixel(xIndex+5, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+                                    pixelData = ((data[j] & 0x40) >> 6) * 0xFF;
+                                    myView.depthBitmap.setPixel(xIndex+6, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+                                    pixelData = ((data[j] & 0x80) >> 7) * 0xFF;
+                                    myView.depthBitmap.setPixel(xIndex+7, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+                                }
+                            }
+                            handler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    myView.invalidate(); // myView 다시 그림
+                                }
+                            });
+
+                            /*
                             if (!data.equals("n")) {// 서버에서 스켈레톤 준비 됨
+
                                 positions = data.split("/");
                                 countNum += Integer.parseInt(positions[41]);
 
@@ -103,7 +145,9 @@ public class SkeletonStream extends AppCompatActivity {
                                         countNumText.setText(countNum + "/" + numPerSet);
                                     }
                                 });
+
                             }
+                            */
                         }
                     }
                 } catch (Exception e) {
@@ -185,6 +229,7 @@ public class SkeletonStream extends AppCompatActivity {
         // TODO Auto-generated method stub
         super.onStop();
         try {
+            socket_in.close();
             socket.close();
         } catch (IOException e) {
             e.printStackTrace();

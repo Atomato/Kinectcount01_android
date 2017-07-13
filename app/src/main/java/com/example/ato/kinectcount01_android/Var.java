@@ -5,10 +5,10 @@ package com.example.ato.kinectcount01_android;
  */
 
 public class Var {
-    public static final class Item {
+
         // 키넥트 뎁스 이미지의 해상도
-        final static int    _DepthHeight = 240;
-        final static int    _DepthWidth = 320;
+        final static int    _DepthHeight = 60;
+        final static int    _DepthWidth = 80;
 
         // 조인트 인덱스
         final static int _HipCenter = 0;
@@ -31,5 +31,5 @@ public class Var {
         final static int _KneeRight = 17;
         final static int _AnkleRight = 18;
         final static int _FootRight = 19;
-    }
+
 }
