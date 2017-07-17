@@ -27,6 +27,8 @@ public class StreamView extends View {
     private int width;
     public Bitmap depthBitmap;
     private Rect dst;
+    public boolean isDrawReady = true;
+
 
     public StreamView(Context context) {
         super(context);
@@ -50,7 +52,7 @@ public class StreamView extends View {
         super.onDraw(canvas);
 
         canvas.drawBitmap(depthBitmap,null,dst,null);
-        /*
+
         path.rewind();
         //Draw head and torso
         path.moveTo(x[Var._Head],y[Var._Head]);
@@ -92,8 +94,9 @@ public class StreamView extends View {
         canvas.drawPath(path,paintSkeleton);
 
         // 카운트 쓰레시홀드
-        canvas.drawLine(0,threshold,width,threshold,paintThreshod);
-        */
+        //canvas.drawLine(0,threshold,width,threshold,paintThreshod);
+
+        isDrawReady = true;
     }
 
     @Override
@@ -107,15 +110,15 @@ public class StreamView extends View {
     }
 
     // 데이터를 받아 x,y에 넣음
-    public void setPosition(String[] positions) {
+    public void setPosition(byte[] positions) {
         for(int i=0;i<20;i++) {
-            x[i] = Integer.parseInt(positions[2*i]);
-            y[i] = Integer.parseInt(positions[2*i+1]);
+            x[i] = positions[600 + 2*i];
+            y[i] = positions[600 + 2*i+1];
             // x 와 y 위치를 뷰 크기에 맞춤
             x[i] = x[i] * width / Var._DepthWidth;
             y[i] = y[i] * height / Var._DepthHeight;
         }
-        threshold = Integer.parseInt(positions[40]) * height / Var._DepthHeight;
+        //threshold = Integer.parseInt(positions[40]) * height / Var._DepthHeight;
     }
 }
 

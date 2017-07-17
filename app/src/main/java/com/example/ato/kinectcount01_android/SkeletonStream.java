@@ -28,9 +28,8 @@ public class SkeletonStream extends AppCompatActivity {
     private BufferedInputStream socket_in;
     private StreamView myView;
     private PrintWriter socket_out;
-    //private String data;
-    private byte[] data = new byte[Var._DepthWidth*Var._DepthHeight/8];
-    private String[] positions;
+    private byte[] data = new byte[Var._DepthWidth*Var._DepthHeight/8 + 80];
+    private byte[] positions = new byte[40];
     private Handler handler;
     TextView breakTimeView;
     private TextView countNumText;
@@ -101,36 +100,49 @@ public class SkeletonStream extends AppCompatActivity {
                             int pixelData;
 
                             int i = 0;
-                            if ((i = socket_in.read(data, 0, data.length)) != -1) {
-                                for (int j = 0; j < Var._DepthWidth*Var._DepthHeight/8; j++){
-                                    xIndex = j*8 % Var._DepthWidth;
-                                    yIndex = j*8 / Var._DepthWidth;
 
-                                    pixelData = ((data[j] & 0x01)) * 0xFF;
-                                    myView.depthBitmap.setPixel(xIndex, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
-                                    pixelData = ((data[j] & 0x02) >> 1) * 0xFF;
-                                    myView.depthBitmap.setPixel(xIndex+1, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
-                                    pixelData = ((data[j] & 0x04) >> 2) * 0xFF;
-                                    myView.depthBitmap.setPixel(xIndex+2, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
-                                    pixelData = ((data[j] & 0x08) >> 3) * 0xFF;
-                                    myView.depthBitmap.setPixel(xIndex+3, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
-                                    pixelData = ((data[j] & 0x10) >> 4) * 0xFF;
-                                    myView.depthBitmap.setPixel(xIndex+4, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
-                                    pixelData = ((data[j] & 0x20) >> 5) * 0xFF;
-                                    myView.depthBitmap.setPixel(xIndex+5, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
-                                    pixelData = ((data[j] & 0x40) >> 6) * 0xFF;
-                                    myView.depthBitmap.setPixel(xIndex+6, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
-                                    pixelData = ((data[j] & 0x80) >> 7) * 0xFF;
-                                    myView.depthBitmap.setPixel(xIndex+7, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+                            while (!myView.isDrawReady)
+                            {
+
+                            }
+
+                            if ((i = socket_in.read(data, 0, data.length)) != -1) {
+                                if (data[0] == 0){ // 서버쪽에서 "n\n" 을 안 보냈을 경우
+                                    for (int j = 0; j < Var._DepthWidth*Var._DepthHeight/8; j++){
+                                        xIndex = j*8 % Var._DepthWidth;
+                                        yIndex = j*8 / Var._DepthWidth;
+
+                                        pixelData = ((data[j] & 0x01)) * 0xFF;
+                                        myView.depthBitmap.setPixel(xIndex, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+                                        pixelData = ((data[j] & 0x02) >> 1) * 0xFF;
+                                        myView.depthBitmap.setPixel(xIndex+1, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+                                        pixelData = ((data[j] & 0x04) >> 2) * 0xFF;
+                                        myView.depthBitmap.setPixel(xIndex+2, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+                                        pixelData = ((data[j] & 0x08) >> 3) * 0xFF;
+                                        myView.depthBitmap.setPixel(xIndex+3, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+                                        pixelData = ((data[j] & 0x10) >> 4) * 0xFF;
+                                        myView.depthBitmap.setPixel(xIndex+4, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+                                        pixelData = ((data[j] & 0x20) >> 5) * 0xFF;
+                                        myView.depthBitmap.setPixel(xIndex+5, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+                                        pixelData = ((data[j] & 0x40) >> 6) * 0xFF;
+                                        myView.depthBitmap.setPixel(xIndex+6, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+                                        pixelData = ((data[j] & 0x80) >> 7) * 0xFF;
+                                        myView.depthBitmap.setPixel(xIndex+7, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+                                    }
                                 }
                             }
-                            handler.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    myView.invalidate(); // myView 다시 그림
-                                }
-                            });
 
+                            if (data[0] == 0){
+                                myView.setPosition(data);
+
+                                myView.isDrawReady = false;
+                                handler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        myView.invalidate(); // myView 다시 그림
+                                    }
+                                });
+                            }
                             /*
                             if (!data.equals("n")) {// 서버에서 스켈레톤 준비 됨
 
@@ -155,6 +167,7 @@ public class SkeletonStream extends AppCompatActivity {
             }
         };
 
+        /*
         Thread counter = new Thread() {
             public void run() {
                 while (true) {
@@ -176,9 +189,9 @@ public class SkeletonStream extends AppCompatActivity {
                 }
             }
         };
-
+*/
         worker.start();
-        counter.start();
+       //counter.start();
 
     }
 
