@@ -9,6 +9,10 @@ public class Var {
         // 키넥트 뎁스 이미지의 해상도
         final static int    _DepthHeight = 60;
         final static int    _DepthWidth = 80;
+        //서버에서 오는 뎁스 바이트 수
+        final static  int _DepthBytesNum = _DepthHeight*_DepthWidth / 8;
+        //서버에서 오는 스켈레톤 바이트 수 (관절 20개. X, Y 좌표 각각 두 개씩)
+        final static  int _SkelBytesNum = 40;
 
         // 조인트 인덱스
         final static int _HipCenter = 0;

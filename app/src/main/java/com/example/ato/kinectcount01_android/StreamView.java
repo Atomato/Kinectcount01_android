@@ -18,7 +18,7 @@ import android.view.WindowManager;
 
 public class StreamView extends View {
     private Paint paintSkeleton;
-    private Paint paintThreshod;
+    private Paint paintThreshold;
     private Path path;
     private int[] x;
     private int[] y;
@@ -27,8 +27,6 @@ public class StreamView extends View {
     private int width;
     public Bitmap depthBitmap;
     private Rect dst;
-    public boolean isDrawReady = true;
-
 
     public StreamView(Context context) {
         super(context);
@@ -37,9 +35,9 @@ public class StreamView extends View {
         paintSkeleton.setColor(Color.RED);
         paintSkeleton.setStrokeWidth(10f);
         paintSkeleton.setStyle(Paint.Style.STROKE);
-        paintThreshod = new Paint();
-        paintThreshod.setColor(Color.CYAN);
-        paintThreshod.setStrokeWidth(7f);
+        paintThreshold = new Paint();
+        paintThreshold.setColor(Color.CYAN);
+        paintThreshold.setStrokeWidth(7f);
         path = new Path();
 
         x = new int[20];
@@ -94,9 +92,7 @@ public class StreamView extends View {
         canvas.drawPath(path,paintSkeleton);
 
         // 카운트 쓰레시홀드
-        //canvas.drawLine(0,threshold,width,threshold,paintThreshod);
-
-        isDrawReady = true;
+        //canvas.drawLine(0,threshold,width,threshold,paintThreshold);
     }
 
     @Override
@@ -109,11 +105,38 @@ public class StreamView extends View {
         super.onSizeChanged(xNew, yNew, xOld, yOld);
     }
 
-    // 데이터를 받아 x,y에 넣음
-    public void setPosition(byte[] positions) {
+    // 데이터를 받아 뎁스 도트 이미지를 만들고 스켈레톤 관절 좌표를 업데이트
+    public void useData(byte[] data) {
+        //뎁스 이미지
+        int xIndex;
+        int yIndex;
+        int pixelData;
+        for (int j = 0; j < Var._DepthWidth*Var._DepthHeight/8; j++){
+            xIndex = j*8 % Var._DepthWidth;
+            yIndex = j*8 / Var._DepthWidth;
+
+            pixelData = ((data[j] & 0x01)) * 0xFF;
+            depthBitmap.setPixel(xIndex, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+            pixelData = ((data[j] & 0x02) >> 1) * 0xFF;
+            depthBitmap.setPixel(xIndex+1, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+            pixelData = ((data[j] & 0x04) >> 2) * 0xFF;
+            depthBitmap.setPixel(xIndex+2, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+            pixelData = ((data[j] & 0x08) >> 3) * 0xFF;
+            depthBitmap.setPixel(xIndex+3, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+            pixelData = ((data[j] & 0x10) >> 4) * 0xFF;
+            depthBitmap.setPixel(xIndex+4, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+            pixelData = ((data[j] & 0x20) >> 5) * 0xFF;
+            depthBitmap.setPixel(xIndex+5, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+            pixelData = ((data[j] & 0x40) >> 6) * 0xFF;
+            depthBitmap.setPixel(xIndex+6, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+            pixelData = ((data[j] & 0x80) >> 7) * 0xFF;
+            depthBitmap.setPixel(xIndex+7, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+        }
+
+        //스켈레톤
         for(int i=0;i<20;i++) {
-            x[i] = positions[600 + 2*i];
-            y[i] = positions[600 + 2*i+1];
+            x[i] = data[Var._DepthBytesNum + 2*i];
+            y[i] = data[Var._DepthBytesNum + 2*i+1];
             // x 와 y 위치를 뷰 크기에 맞춤
             x[i] = x[i] * width / Var._DepthWidth;
             y[i] = y[i] * height / Var._DepthHeight;

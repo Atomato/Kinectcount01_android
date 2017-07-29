@@ -24,11 +24,10 @@ import android.widget.TextView;
 
 public class SkeletonStream extends AppCompatActivity {
     private Socket socket;
-    //private BufferedReader socket_in;
     private BufferedInputStream socket_in;
     private StreamView myView;
     private PrintWriter socket_out;
-    private byte[] data = new byte[Var._DepthWidth*Var._DepthHeight/8 + 80];
+    private byte[] data = new byte[Var._DepthBytesNum + Var._SkelBytesNum];
     private byte[] positions = new byte[40];
     private Handler handler;
     TextView breakTimeView;
@@ -95,47 +94,10 @@ public class SkeletonStream extends AppCompatActivity {
                             // 서버에 조인트 좌표 요청
                             socket_out.println("y");
 
-                            int xIndex;
-                            int yIndex;
-                            int pixelData;
+                            socket_in.read(data, 0, data.length);
+                            if ((data[0]&0xFF) != 0xFF){ // 서버쪽에서 "n\n" 을 안 보냈을 경우
+                                myView.useData(data);
 
-                            int i = 0;
-
-                            while (!myView.isDrawReady)
-                            {
-
-                            }
-
-                            if ((i = socket_in.read(data, 0, data.length)) != -1) {
-                                if (data[0] == 0){ // 서버쪽에서 "n\n" 을 안 보냈을 경우
-                                    for (int j = 0; j < Var._DepthWidth*Var._DepthHeight/8; j++){
-                                        xIndex = j*8 % Var._DepthWidth;
-                                        yIndex = j*8 / Var._DepthWidth;
-
-                                        pixelData = ((data[j] & 0x01)) * 0xFF;
-                                        myView.depthBitmap.setPixel(xIndex, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
-                                        pixelData = ((data[j] & 0x02) >> 1) * 0xFF;
-                                        myView.depthBitmap.setPixel(xIndex+1, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
-                                        pixelData = ((data[j] & 0x04) >> 2) * 0xFF;
-                                        myView.depthBitmap.setPixel(xIndex+2, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
-                                        pixelData = ((data[j] & 0x08) >> 3) * 0xFF;
-                                        myView.depthBitmap.setPixel(xIndex+3, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
-                                        pixelData = ((data[j] & 0x10) >> 4) * 0xFF;
-                                        myView.depthBitmap.setPixel(xIndex+4, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
-                                        pixelData = ((data[j] & 0x20) >> 5) * 0xFF;
-                                        myView.depthBitmap.setPixel(xIndex+5, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
-                                        pixelData = ((data[j] & 0x40) >> 6) * 0xFF;
-                                        myView.depthBitmap.setPixel(xIndex+6, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
-                                        pixelData = ((data[j] & 0x80) >> 7) * 0xFF;
-                                        myView.depthBitmap.setPixel(xIndex+7, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
-                                    }
-                                }
-                            }
-
-                            if (data[0] == 0){
-                                myView.setPosition(data);
-
-                                myView.isDrawReady = false;
                                 handler.post(new Runnable() {
                                     @Override
                                     public void run() {
@@ -143,23 +105,6 @@ public class SkeletonStream extends AppCompatActivity {
                                     }
                                 });
                             }
-                            /*
-                            if (!data.equals("n")) {// 서버에서 스켈레톤 준비 됨
-
-                                positions = data.split("/");
-                                countNum += Integer.parseInt(positions[41]);
-
-                                myView.setPosition(positions);
-                                handler.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        myView.invalidate(); // myView 다시 그림
-                                        countNumText.setText(countNum + "/" + numPerSet);
-                                    }
-                                });
-
-                            }
-                            */
                         }
                     }
                 } catch (Exception e) {
@@ -194,7 +139,7 @@ public class SkeletonStream extends AppCompatActivity {
        //counter.start();
 
     }
-
+/*
     Handler timer = new Handler() {
         public void handleMessage(Message msg) {
             timeValue--;
@@ -212,7 +157,7 @@ public class SkeletonStream extends AppCompatActivity {
             }
 
         }
-    };
+    };*/
 
     @Override
     // 마이뷰의 가로를 세로 길이의 3분의 4가 되도록
