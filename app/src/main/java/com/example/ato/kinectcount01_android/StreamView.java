@@ -92,7 +92,7 @@ public class StreamView extends View {
         canvas.drawPath(path,paintSkeleton);
 
         // 카운트 쓰레시홀드
-        //canvas.drawLine(0,threshold,width,threshold,paintThreshold);
+        canvas.drawLine(0,threshold,width,threshold,paintThreshold);
     }
 
     @Override
@@ -141,7 +141,7 @@ public class StreamView extends View {
             x[i] = x[i] * width / Var._DepthWidth;
             y[i] = y[i] * height / Var._DepthHeight;
         }
-        //threshold = Integer.parseInt(positions[40]) * height / Var._DepthHeight;
+        threshold = (data[Var._CountOffset] & 0x7F) * height / Var._DepthHeight;
     }
 }
 

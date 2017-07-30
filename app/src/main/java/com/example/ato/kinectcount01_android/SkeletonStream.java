@@ -27,10 +27,9 @@ public class SkeletonStream extends AppCompatActivity {
     private BufferedInputStream socket_in;
     private StreamView myView;
     private PrintWriter socket_out;
-    private byte[] data = new byte[Var._DepthBytesNum + Var._SkelBytesNum];
-    private byte[] positions = new byte[40];
+    private byte[] data = new byte[Var._CountOffset + 1];
     private Handler handler;
-    TextView breakTimeView;
+    private TextView breakTimeView;
     private TextView countNumText;
     private TextView setNumText;
     private TextView breakTimeText;
@@ -83,7 +82,6 @@ public class SkeletonStream extends AppCompatActivity {
                 try {
                     socket = new Socket("192.168.0.9", 8200);
                     socket_out = new PrintWriter(socket.getOutputStream(), true);
-                    //socket_in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                     socket_in = new BufferedInputStream(socket.getInputStream());
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -97,11 +95,13 @@ public class SkeletonStream extends AppCompatActivity {
                             socket_in.read(data, 0, data.length);
                             if ((data[0]&0xFF) != 0xFF){ // 서버쪽에서 "n\n" 을 안 보냈을 경우
                                 myView.useData(data);
+                                countNum += (data[Var._CountOffset]&0x80) >> 7; //MSB 가 카운트 업을 나타냄
 
                                 handler.post(new Runnable() {
                                     @Override
                                     public void run() {
                                         myView.invalidate(); // myView 다시 그림
+                                        countNumText.setText(countNum + "/" + numPerSet);
                                     }
                                 });
                             }
@@ -112,7 +112,7 @@ public class SkeletonStream extends AppCompatActivity {
             }
         };
 
-        /*
+
         Thread counter = new Thread() {
             public void run() {
                 while (true) {
@@ -134,12 +134,12 @@ public class SkeletonStream extends AppCompatActivity {
                 }
             }
         };
-*/
+
         worker.start();
-       //counter.start();
+        counter.start();
 
     }
-/*
+
     Handler timer = new Handler() {
         public void handleMessage(Message msg) {
             timeValue--;
@@ -157,7 +157,7 @@ public class SkeletonStream extends AppCompatActivity {
             }
 
         }
-    };*/
+    };
 
     @Override
     // 마이뷰의 가로를 세로 길이의 3분의 4가 되도록
