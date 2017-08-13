@@ -41,6 +41,7 @@ public class SkeletonStream extends AppCompatActivity {
     //사운드 멤버
     private SoundPool soundPool;
     private int[] sm;
+    private int[] smETC;
 
 
     @Override
@@ -92,6 +93,11 @@ public class SkeletonStream extends AppCompatActivity {
             temp = getResources().getIdentifier("sound"+i, "raw", getPackageName());
             sm[i-1] = soundPool.load(this,temp,1);
         }
+        smETC = new int[4];
+        smETC[0] = soundPool.load(this,R.raw.break_time,1);
+        smETC[1] = soundPool.load(this,R.raw.re_start,1);
+        smETC[2] = soundPool.load(this,R.raw.done,1);
+        smETC[3] = soundPool.load(this,R.raw.cheer_up,1);
         //
 
         timeValue = breakTime;
@@ -107,6 +113,7 @@ public class SkeletonStream extends AppCompatActivity {
                     e.printStackTrace();
                 }
                 try {
+                    int countStopTIme = 0; //카운트가 얼마 동안 안 오르고 있는지
                     while (true) {
                         if (!IsBreakTime) {
                             // 서버에 조인트 좌표 요청
@@ -115,12 +122,20 @@ public class SkeletonStream extends AppCompatActivity {
                             socket_in.read(data, 0, data.length);
                             if ((data[0]&0xFF) != 0xFF){ // 서버쪽에서 데이터가 준비되어 있을 경우
                                 myView.useData(data);
-                                //countNum += (data[Var._CountOffset]&0x80) >> 7; //MSB 가 카운트 업을 나타냄
-                                if (((data[Var._CountOffset]&0x80) >> 7) == 1){
+
+                                if (((data[Var._CountOffset]&0x80) >> 7) == 1){ //MSB 가 카운트 업을 나타냄
                                     countNum ++;
+                                    countStopTIme = 0;
                                     soundPool.play(sm[countNum -1], 1, 1, 1, 0, 1f);
                                 }
+                                else {
+                                    countStopTIme ++;
+                                }
 
+                                if (countStopTIme == 120){
+                                    soundPool.play(smETC[3], 1, 1, 1, 0, 1f);
+                                    countStopTIme = 0;
+                                }
                                 countCheck();
 
                                 handler.post(new Runnable() {
@@ -153,6 +168,7 @@ public class SkeletonStream extends AppCompatActivity {
                 }
             });
             IsBreakTime = true;
+            soundPool.play(smETC[0], 1, 1, 1, 0, 1f); //break_time
 
             timer.sendEmptyMessageDelayed(0,1000);
         }
@@ -163,6 +179,7 @@ public class SkeletonStream extends AppCompatActivity {
             timeValue--;
             if (timeValue == 0){
                 IsBreakTime = false;
+                soundPool.play(smETC[1], 1, 1, 1, 0, 1f); //break_time
                 timeValue = breakTime;
                 breakTimeText.setText(String.valueOf(timeValue));
                 myView.setVisibility(View.VISIBLE);
