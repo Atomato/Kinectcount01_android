@@ -35,13 +35,14 @@ public class SkeletonStream extends AppCompatActivity {
     private int setCountNum = 0; // 현재까지 세트 수
     final static int numPerSet = 3; // 세트당 횟수
     final static int setNum = 2; // 전체 세트 수
-    final static int breakTime = 5; // 휴식 시간
+    final static int breakTime = 5; // 휴식 시간 (초)
     int timeValue;
     boolean IsBreakTime;
     //사운드 멤버
     private SoundPool soundPool;
     private int[] sm;
     private int[] smETC;
+    private static Handler timer;
 
 
     @Override
@@ -119,7 +120,7 @@ public class SkeletonStream extends AppCompatActivity {
                             // 서버에 조인트 좌표 요청
                             socket_out.println("y");
 
-                            socket_in.read(data, 0, data.length);
+                            int i = socket_in.read(data, 0, data.length);
                             if ((data[0]&0xFF) != 0xFF){ // 서버쪽에서 데이터가 준비되어 있을 경우
                                 myView.useData(data);
 
@@ -132,7 +133,7 @@ public class SkeletonStream extends AppCompatActivity {
                                     countStopTIme ++;
                                 }
 
-                                if (countStopTIme == 120){
+                                if (countStopTIme == 180){
                                     soundPool.play(smETC[3], 1, 1, 1, 0, 1f);
                                     countStopTIme = 0;
                                 }
@@ -152,6 +153,27 @@ public class SkeletonStream extends AppCompatActivity {
                 }
             }
         };
+
+        timer = new Handler() {
+            public void handleMessage(Message msg) {
+                timeValue--;
+                if (timeValue == 0){
+                    IsBreakTime = false;
+                    soundPool.play(smETC[1], 1, 1, 1, 0, 1f); //세트 다시 시작
+                    timeValue = breakTime;
+                    breakTimeText.setText(String.valueOf(timeValue));
+                    myView.setVisibility(View.VISIBLE);
+                    breakTimeView.setVisibility(View.INVISIBLE);
+                }
+                else {
+                    breakTimeText.setText(String.valueOf(timeValue));
+
+                    timer.sendEmptyMessageDelayed(0,1000);
+                }
+
+            }
+        };
+
         worker.start();
     }
 
@@ -173,26 +195,6 @@ public class SkeletonStream extends AppCompatActivity {
             timer.sendEmptyMessageDelayed(0,1000);
         }
     }
-
-    Handler timer = new Handler() {
-        public void handleMessage(Message msg) {
-            timeValue--;
-            if (timeValue == 0){
-                IsBreakTime = false;
-                soundPool.play(smETC[1], 1, 1, 1, 0, 1f); //break_time
-                timeValue = breakTime;
-                breakTimeText.setText(String.valueOf(timeValue));
-                myView.setVisibility(View.VISIBLE);
-                breakTimeView.setVisibility(View.INVISIBLE);
-            }
-            else {
-                breakTimeText.setText(String.valueOf(timeValue));
-
-                timer.sendEmptyMessageDelayed(0,1000);
-            }
-
-        }
-    };
 
     @Override
     // 마이뷰의 가로를 세로 길이의 3분의 4가 되도록
