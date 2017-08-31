@@ -25,7 +25,7 @@ public class SkeletonStream extends AppCompatActivity {
     private BufferedInputStream socket_in;
     private StreamView myView;
     private PrintWriter socket_out;
-    private byte[] data = new byte[Var._CountOffset + 1];
+    private byte[] data = new byte[Var._CountOffset + 2];
     private Handler handler;
     private TextView breakTimeView;
     private TextView countNumText;
@@ -124,6 +124,11 @@ public class SkeletonStream extends AppCompatActivity {
                             if ((data[0]&0xFF) != 0xFF){ // 서버쪽에서 데이터가 준비되어 있을 경우
                                 myView.useData(data);
 
+                                if ((data[Var._CountOffset+1]&0xFF) == 0x01){ //initialize
+                                    countNum = 0;
+                                    setCountNum = 0;
+                                }
+
                                 if (((data[Var._CountOffset]&0x80) >> 7) == 1){ //MSB 가 카운트 업을 나타냄
                                     countNum ++;
                                     countStopTIme = 0;
@@ -144,6 +149,7 @@ public class SkeletonStream extends AppCompatActivity {
                                     public void run() {
                                         myView.invalidate(); // myView 다시 그림
                                         countNumText.setText(countNum + "/" + numPerSet);
+                                        setNumText.setText(setCountNum + "/" + setNum);
                                     }
                                 });
                             }
