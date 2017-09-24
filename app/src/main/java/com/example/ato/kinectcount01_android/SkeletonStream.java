@@ -1,6 +1,8 @@
 package com.example.ato.kinectcount01_android;
 
 import android.annotation.TargetApi;
+import android.media.AudioManager;
+import android.media.SoundPool;
 import android.os.Build;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
@@ -10,9 +12,8 @@ import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.LinearLayout;
 
-import java.io.BufferedReader;
+import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
@@ -21,23 +22,28 @@ import android.widget.TextView;
 
 public class SkeletonStream extends AppCompatActivity {
     private Socket socket;
-    private BufferedReader socket_in;
+    private BufferedInputStream socket_in;
     private StreamView myView;
     private PrintWriter socket_out;
-    private String data;
-    private String[] positions;
+    private byte[] data = new byte[Var._CountOffset + 1];
     private Handler handler;
-    TextView breakTimeView;
+    private TextView breakTimeView;
     private TextView countNumText;
     private TextView setNumText;
     private TextView breakTimeText;
     private int countNum = 0;
     private int setCountNum = 0; // 현재까지 세트 수
-    final static int numPerSet = 3; // 세트당 횟수
+    final static int numPerSet = 5; // 세트당 횟수
     final static int setNum = 2; // 전체 세트 수
-    final static int breakTime = 5; // 휴식 시간
+    final static int breakTime = 5; // 휴식 시간 (초)
     int timeValue;
     boolean IsBreakTime;
+    //사운드 멤버
+    private SoundPool soundPool;
+    private int[] sm;
+    private int[] smETC;
+    private static Handler timer;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,6 +78,29 @@ public class SkeletonStream extends AppCompatActivity {
         linearLayout.addView(myView);
         //
 
+        //sound setting
+        int maxStreams = 1;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            soundPool = new SoundPool.Builder()
+                    .setMaxStreams(maxStreams)
+                    .build();
+        } else {
+            soundPool = new SoundPool(maxStreams, AudioManager.STREAM_MUSIC, 0);
+        }
+        int temp;
+        sm = new int[20];
+        // fill your sounds
+        for (int i=1; i<21; i++){
+            temp = getResources().getIdentifier("sound"+i, "raw", getPackageName());
+            sm[i-1] = soundPool.load(this,temp,1);
+        }
+        smETC = new int[4];
+        smETC[0] = soundPool.load(this,R.raw.break_time,1);
+        smETC[1] = soundPool.load(this,R.raw.re_start,1);
+        smETC[2] = soundPool.load(this,R.raw.done,1);
+        smETC[3] = soundPool.load(this,R.raw.cheer_up,1);
+        //
+
         timeValue = breakTime;
         handler = new Handler();
 
@@ -80,27 +109,50 @@ public class SkeletonStream extends AppCompatActivity {
                 try {
                     socket = new Socket("192.168.0.9", 8200);
                     socket_out = new PrintWriter(socket.getOutputStream(), true);
-                    socket_in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    socket_in = new BufferedInputStream(socket.getInputStream());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
                 try {
+                    int countStopTIme = 0; //카운트가 얼마 동안 안 오르고 있는지
                     while (true) {
                         if (!IsBreakTime) {
                             // 서버에 조인트 좌표 요청
                             socket_out.println("y");
 
-                            data = socket_in.readLine();
-                            if (!data.equals("n")) {// 서버에서 스켈레톤 준비 됨
-                                positions = data.split("/");
-                                countNum += Integer.parseInt(positions[41]);
+                            int i = socket_in.read(data, 0, data.length);
+                            if ((data[0]&0xFF) != 0xFF){ // 서버쪽에서 데이터가 준비되어 있을 경우
+                                myView.useData(data);
 
-                                myView.setPosition(positions);
+                                if ((data[0]&0x80) == 0x80){ //initialize
+                                    countNum = 0;
+                                    setCountNum = 0;
+                                    countStopTIme = 0;
+                                }
+
+                                //MSB 가 카운트 업을 나타냄
+                                if (((data[Var._CountOffset]&0x80) >> 7) == 1){
+                                    countNum ++;
+                                    countStopTIme = 0;
+                                    soundPool.play(sm[countNum -1], 1, 1, 1, 0, 1f);
+                                }
+                                else {
+                                    countStopTIme ++;
+                                }
+
+                                //300/30 = 10초 동안 가만히 있을 경우 운동 재촉
+                                if (countStopTIme == 300){
+                                    soundPool.play(smETC[3], 1, 1, 1, 0, 1f);
+                                    countStopTIme = 0;
+                                }
+                                countCheck();
+
                                 handler.post(new Runnable() {
                                     @Override
                                     public void run() {
                                         myView.invalidate(); // myView 다시 그림
                                         countNumText.setText(countNum + "/" + numPerSet);
+                                        setNumText.setText(setCountNum + "/" + setNum);
                                     }
                                 });
                             }
@@ -111,51 +163,47 @@ public class SkeletonStream extends AppCompatActivity {
             }
         };
 
-        Thread counter = new Thread() {
-            public void run() {
-                while (true) {
-                    if (countNum >= numPerSet) {
-                        countNum = 0;
-                        setCountNum++;
-                        handler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                setNumText.setText(setCountNum + "/" + setNum);
-                                myView.setVisibility(View.INVISIBLE);
-                                breakTimeView.setVisibility(View.VISIBLE);
-                            }
-                        });
-                        IsBreakTime = true;
-
-                        timer.sendEmptyMessageDelayed(0,1000);
-                    }
+        timer = new Handler() {
+            public void handleMessage(Message msg) {
+                timeValue--;
+                if (timeValue == 0){
+                    IsBreakTime = false;
+                    soundPool.play(smETC[1], 1, 1, 1, 0, 1f); //세트 다시 시작
+                    timeValue = breakTime;
+                    breakTimeText.setText(String.valueOf(timeValue));
+                    myView.setVisibility(View.VISIBLE);
+                    breakTimeView.setVisibility(View.INVISIBLE);
                 }
+                else {
+                    breakTimeText.setText(String.valueOf(timeValue));
+
+                    timer.sendEmptyMessageDelayed(0,1000);
+                }
+
             }
         };
 
         worker.start();
-        counter.start();
-
     }
 
-    Handler timer = new Handler() {
-        public void handleMessage(Message msg) {
-            timeValue--;
-            if (timeValue == 0){
-                IsBreakTime = false;
-                timeValue = breakTime;
-                breakTimeText.setText(String.valueOf(timeValue));
-                myView.setVisibility(View.VISIBLE);
-                breakTimeView.setVisibility(View.INVISIBLE);
-            }
-            else {
-                breakTimeText.setText(String.valueOf(timeValue));
+    private void countCheck(){
+        if (countNum >= numPerSet) {
+            countNum = 0;
+            setCountNum++;
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    setNumText.setText(setCountNum + "/" + setNum);
+                    myView.setVisibility(View.INVISIBLE);
+                    breakTimeView.setVisibility(View.VISIBLE);
+                }
+            });
+            IsBreakTime = true;
+            soundPool.play(smETC[0], 1, 1, 1, 0, 1f); //break_time
 
-                timer.sendEmptyMessageDelayed(0,1000);
-            }
-
+            timer.sendEmptyMessageDelayed(0,1000);
         }
-    };
+    }
 
     @Override
     // 마이뷰의 가로를 세로 길이의 3분의 4가 되도록
@@ -185,6 +233,7 @@ public class SkeletonStream extends AppCompatActivity {
         // TODO Auto-generated method stub
         super.onStop();
         try {
+            socket_in.close();
             socket.close();
         } catch (IOException e) {
             e.printStackTrace();

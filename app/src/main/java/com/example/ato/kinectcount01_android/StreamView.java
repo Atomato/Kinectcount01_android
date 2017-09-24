@@ -1,5 +1,7 @@
 package com.example.ato.kinectcount01_android;
 
+import android.graphics.Bitmap;
+import android.graphics.Rect;
 import android.view.View;
 import android.content.Context;
 import android.graphics.Canvas;
@@ -16,13 +18,17 @@ import android.view.WindowManager;
 
 public class StreamView extends View {
     private Paint paintSkeleton;
-    private Paint paintThreshod;
+    private Paint paintThreshold;
+    private Paint paintText;
     private Path path;
     private int[] x;
     private int[] y;
     private int threshold;
+    private int workoutType = 2; //2는 null
     private int height;
     private int width;
+    public Bitmap depthBitmap;
+    private Rect dst;
 
     public StreamView(Context context) {
         super(context);
@@ -31,60 +37,80 @@ public class StreamView extends View {
         paintSkeleton.setColor(Color.RED);
         paintSkeleton.setStrokeWidth(10f);
         paintSkeleton.setStyle(Paint.Style.STROKE);
-        paintThreshod = new Paint();
-        paintThreshod.setColor(Color.CYAN);
-        paintThreshod.setStrokeWidth(7f);
+        paintThreshold = new Paint();
+        paintThreshold.setColor(Color.CYAN);
+        paintThreshold.setStrokeWidth(7f);
+        paintText = new Paint();
+        paintText.setColor(Color.CYAN);
+        paintText.setTextSize(200);
         path = new Path();
 
         x = new int[20];
         y = new int[20];
+
+        depthBitmap = Bitmap.createBitmap(Var._DepthWidth, Var._DepthHeight, Bitmap.Config.ARGB_8888);
     }
 
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
+        canvas.drawBitmap(depthBitmap,null,dst,null);
+
         path.rewind();
         //Draw head and torso
-        path.moveTo(x[Var.Item._Head],y[Var.Item._Head]);
-        path.lineTo(x[Var.Item._ShoulderCenter],y[Var.Item._ShoulderCenter]);
-        path.lineTo(x[Var.Item._ShoulderLeft],y[Var.Item._ShoulderLeft]);
-        path.lineTo(x[Var.Item._Spine],y[Var.Item._Spine]);
-        path.lineTo(x[Var.Item._ShoulderRight],y[Var.Item._ShoulderRight]);
-        path.lineTo(x[Var.Item._ShoulderCenter],y[Var.Item._ShoulderCenter]);
-        path.lineTo(x[Var.Item._HipCenter],y[Var.Item._HipCenter]);
+        path.moveTo(x[Var._Head],y[Var._Head]);
+        path.lineTo(x[Var._ShoulderCenter],y[Var._ShoulderCenter]);
+        path.lineTo(x[Var._ShoulderLeft],y[Var._ShoulderLeft]);
+        path.lineTo(x[Var._Spine],y[Var._Spine]);
+        path.lineTo(x[Var._ShoulderRight],y[Var._ShoulderRight]);
+        path.lineTo(x[Var._ShoulderCenter],y[Var._ShoulderCenter]);
+        path.lineTo(x[Var._HipCenter],y[Var._HipCenter]);
 
-        path.moveTo(x[Var.Item._HipLeft],y[Var.Item._HipLeft]);
-        path.lineTo(x[Var.Item._HipRight],y[Var.Item._HipRight]);
+        path.moveTo(x[Var._HipLeft],y[Var._HipLeft]);
+        path.lineTo(x[Var._HipRight],y[Var._HipRight]);
 
         //Draw left leg
-        path.moveTo(x[Var.Item._HipCenter],y[Var.Item._HipCenter]);
-        path.lineTo(x[Var.Item._HipLeft],y[Var.Item._HipLeft]);
-        path.lineTo(x[Var.Item._KneeLeft],y[Var.Item._KneeLeft]);
-        path.lineTo(x[Var.Item._AnkleLeft],y[Var.Item._AnkleLeft]);
-        path.lineTo(x[Var.Item._FootLeft],y[Var.Item._FootLeft]);
+        path.moveTo(x[Var._HipCenter],y[Var._HipCenter]);
+        path.lineTo(x[Var._HipLeft],y[Var._HipLeft]);
+        path.lineTo(x[Var._KneeLeft],y[Var._KneeLeft]);
+        path.lineTo(x[Var._AnkleLeft],y[Var._AnkleLeft]);
+        path.lineTo(x[Var._FootLeft],y[Var._FootLeft]);
 
         //Draw right leg
-        path.moveTo(x[Var.Item._HipCenter],y[Var.Item._HipCenter]);
-        path.lineTo(x[Var.Item._HipRight],y[Var.Item._HipRight]);
-        path.lineTo(x[Var.Item._KneeRight],y[Var.Item._KneeRight]);
-        path.lineTo(x[Var.Item._AnkleRight],y[Var.Item._AnkleRight]);
-        path.lineTo(x[Var.Item._FootRight],y[Var.Item._FootRight]);
+        path.moveTo(x[Var._HipCenter],y[Var._HipCenter]);
+        path.lineTo(x[Var._HipRight],y[Var._HipRight]);
+        path.lineTo(x[Var._KneeRight],y[Var._KneeRight]);
+        path.lineTo(x[Var._AnkleRight],y[Var._AnkleRight]);
+        path.lineTo(x[Var._FootRight],y[Var._FootRight]);
 
         //Draw left arm
-        path.moveTo(x[Var.Item._ShoulderLeft],y[Var.Item._ShoulderLeft]);
-        path.lineTo(x[Var.Item._ElbowLeft],y[Var.Item._ElbowLeft]);
-        path.lineTo(x[Var.Item._WristLeft],y[Var.Item._WristLeft]);
-        path.lineTo(x[Var.Item._HandLeft],y[Var.Item._HandLeft]);
+        path.moveTo(x[Var._ShoulderLeft],y[Var._ShoulderLeft]);
+        path.lineTo(x[Var._ElbowLeft],y[Var._ElbowLeft]);
+        path.lineTo(x[Var._WristLeft],y[Var._WristLeft]);
+        path.lineTo(x[Var._HandLeft],y[Var._HandLeft]);
 
         //Draw right arm
-        path.moveTo(x[Var.Item._ShoulderRight],y[Var.Item._ShoulderRight]);
-        path.lineTo(x[Var.Item._ElbowRight],y[Var.Item._ElbowRight]);
-        path.lineTo(x[Var.Item._WristRight],y[Var.Item._WristRight]);
-        path.lineTo(x[Var.Item._HandRight],y[Var.Item._HandRight]);
+        path.moveTo(x[Var._ShoulderRight],y[Var._ShoulderRight]);
+        path.lineTo(x[Var._ElbowRight],y[Var._ElbowRight]);
+        path.lineTo(x[Var._WristRight],y[Var._WristRight]);
+        path.lineTo(x[Var._HandRight],y[Var._HandRight]);
         canvas.drawPath(path,paintSkeleton);
 
         // 카운트 쓰레시홀드
-        canvas.drawLine(0,threshold,width,threshold,paintThreshod);
+        canvas.drawLine(0,threshold,width,threshold,paintThreshold);
+
+        // 운동 종류
+        switch (workoutType) {
+            case 0:
+                canvas.drawText("Squat", 10, 150, paintText);
+                break;
+            case 1:
+                canvas.drawText("Biceps", 10, 150, paintText);
+                canvas.drawText("Curl", 10, 320, paintText);
+                break;
+            default:
+                break;
+        }
     }
 
     @Override
@@ -93,19 +119,50 @@ public class StreamView extends View {
         height = yNew;
         width = xNew;
 
+        dst = new Rect(0,0,width,height);
         super.onSizeChanged(xNew, yNew, xOld, yOld);
     }
 
-    // 데이터를 받아 x,y에 넣음
-    public void setPosition(String[] positions) {
-        for(int i=0;i<20;i++) {
-            x[i] = Integer.parseInt(positions[2*i]);
-            y[i] = Integer.parseInt(positions[2*i+1]);
-            // x 와 y 위치를 뷰 크기에 맞춤
-            x[i] = x[i] * width / Var.Item._DepthWidth;
-            y[i] = y[i] * height / Var.Item._DepthHeight;
+    // 데이터를 받아 뎁스 도트 이미지를 만들고 스켈레톤 관절 좌표를 업데이트
+    // 쓰레시홀드 라인과 운동 종류 업데이트
+    public void useData(byte[] data) {
+        //뎁스 이미지
+        int xIndex;
+        int yIndex;
+        int pixelData;
+        for (int j = 0; j < Var._DepthWidth*Var._DepthHeight/8; j++){
+            xIndex = j*8 % Var._DepthWidth;
+            yIndex = j*8 / Var._DepthWidth;
+
+            pixelData = ((data[Var._DepthOffset + j] & 0x01)) * 0xFF;
+            depthBitmap.setPixel(xIndex, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+            pixelData = ((data[Var._DepthOffset + j] & 0x02) >> 1) * 0xFF;
+            depthBitmap.setPixel(xIndex+1, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+            pixelData = ((data[Var._DepthOffset + j] & 0x04) >> 2) * 0xFF;
+            depthBitmap.setPixel(xIndex+2, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+            pixelData = ((data[Var._DepthOffset + j] & 0x08) >> 3) * 0xFF;
+            depthBitmap.setPixel(xIndex+3, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+            pixelData = ((data[Var._DepthOffset + j] & 0x10) >> 4) * 0xFF;
+            depthBitmap.setPixel(xIndex+4, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+            pixelData = ((data[Var._DepthOffset + j] & 0x20) >> 5) * 0xFF;
+            depthBitmap.setPixel(xIndex+5, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+            pixelData = ((data[Var._DepthOffset + j] & 0x40) >> 6) * 0xFF;
+            depthBitmap.setPixel(xIndex+6, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
+            pixelData = ((data[Var._DepthOffset + j] & 0x80) >> 7) * 0xFF;
+            depthBitmap.setPixel(xIndex+7, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
         }
-        threshold = Integer.parseInt(positions[40]) * height / Var.Item._DepthHeight;
+
+        //스켈레톤
+        for(int i=0;i<20;i++) {
+            x[i] = data[Var._SkelOffset + 2*i];
+            y[i] = data[Var._SkelOffset + 2*i+1];
+            // x 와 y 위치를 뷰 크기에 맞춤
+            x[i] = x[i] * width / Var._DepthWidth;
+            y[i] = y[i] * height / Var._DepthHeight;
+        }
+
+        threshold = (data[Var._CountOffset] & 0x7F) * height / Var._DepthHeight;
+        workoutType = data[0] & 0x7F;
     }
 }
 
