@@ -14,7 +14,9 @@ public class Var {
         //서버에서 오는 스켈레톤 바이트 수 (관절 20개. X, Y 좌표 각각 두 개씩)
         final static  int _SkelBytesNum = 40;
 
-        final static int _CountOffset = _DepthBytesNum + _SkelBytesNum;
+        final static int _DepthOffset = 1;
+        final static int _SkelOffset = _DepthOffset + _DepthBytesNum;
+        final static int _CountOffset = _SkelOffset + _SkelBytesNum;
 
         // 조인트 인덱스
         final static int _HipCenter = 0;

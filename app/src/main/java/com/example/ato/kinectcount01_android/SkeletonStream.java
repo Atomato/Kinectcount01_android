@@ -25,7 +25,7 @@ public class SkeletonStream extends AppCompatActivity {
     private BufferedInputStream socket_in;
     private StreamView myView;
     private PrintWriter socket_out;
-    private byte[] data = new byte[Var._CountOffset + 2];
+    private byte[] data = new byte[Var._CountOffset + 1];
     private Handler handler;
     private TextView breakTimeView;
     private TextView countNumText;
@@ -33,7 +33,7 @@ public class SkeletonStream extends AppCompatActivity {
     private TextView breakTimeText;
     private int countNum = 0;
     private int setCountNum = 0; // 현재까지 세트 수
-    final static int numPerSet = 3; // 세트당 횟수
+    final static int numPerSet = 5; // 세트당 횟수
     final static int setNum = 2; // 전체 세트 수
     final static int breakTime = 5; // 휴식 시간 (초)
     int timeValue;
@@ -124,12 +124,14 @@ public class SkeletonStream extends AppCompatActivity {
                             if ((data[0]&0xFF) != 0xFF){ // 서버쪽에서 데이터가 준비되어 있을 경우
                                 myView.useData(data);
 
-                                if ((data[Var._CountOffset+1]&0xFF) == 0x01){ //initialize
+                                if ((data[0]&0x80) == 0x80){ //initialize
                                     countNum = 0;
                                     setCountNum = 0;
+                                    countStopTIme = 0;
                                 }
 
-                                if (((data[Var._CountOffset]&0x80) >> 7) == 1){ //MSB 가 카운트 업을 나타냄
+                                //MSB 가 카운트 업을 나타냄
+                                if (((data[Var._CountOffset]&0x80) >> 7) == 1){
                                     countNum ++;
                                     countStopTIme = 0;
                                     soundPool.play(sm[countNum -1], 1, 1, 1, 0, 1f);
@@ -138,7 +140,8 @@ public class SkeletonStream extends AppCompatActivity {
                                     countStopTIme ++;
                                 }
 
-                                if (countStopTIme == 180){
+                                //300/30 = 10초 동안 가만히 있을 경우 운동 재촉
+                                if (countStopTIme == 300){
                                     soundPool.play(smETC[3], 1, 1, 1, 0, 1f);
                                     countStopTIme = 0;
                                 }

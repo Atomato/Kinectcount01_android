@@ -19,10 +19,12 @@ import android.view.WindowManager;
 public class StreamView extends View {
     private Paint paintSkeleton;
     private Paint paintThreshold;
+    private Paint paintText;
     private Path path;
     private int[] x;
     private int[] y;
     private int threshold;
+    private int workoutType = 2; //2는 null
     private int height;
     private int width;
     public Bitmap depthBitmap;
@@ -38,6 +40,9 @@ public class StreamView extends View {
         paintThreshold = new Paint();
         paintThreshold.setColor(Color.CYAN);
         paintThreshold.setStrokeWidth(7f);
+        paintText = new Paint();
+        paintText.setColor(Color.CYAN);
+        paintText.setTextSize(200);
         path = new Path();
 
         x = new int[20];
@@ -93,6 +98,19 @@ public class StreamView extends View {
 
         // 카운트 쓰레시홀드
         canvas.drawLine(0,threshold,width,threshold,paintThreshold);
+
+        // 운동 종류
+        switch (workoutType) {
+            case 0:
+                canvas.drawText("Squat", 10, 150, paintText);
+                break;
+            case 1:
+                canvas.drawText("Biceps", 10, 150, paintText);
+                canvas.drawText("Curl", 10, 320, paintText);
+                break;
+            default:
+                break;
+        }
     }
 
     @Override
@@ -106,6 +124,7 @@ public class StreamView extends View {
     }
 
     // 데이터를 받아 뎁스 도트 이미지를 만들고 스켈레톤 관절 좌표를 업데이트
+    // 쓰레시홀드 라인과 운동 종류 업데이트
     public void useData(byte[] data) {
         //뎁스 이미지
         int xIndex;
@@ -115,33 +134,35 @@ public class StreamView extends View {
             xIndex = j*8 % Var._DepthWidth;
             yIndex = j*8 / Var._DepthWidth;
 
-            pixelData = ((data[j] & 0x01)) * 0xFF;
+            pixelData = ((data[Var._DepthOffset + j] & 0x01)) * 0xFF;
             depthBitmap.setPixel(xIndex, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
-            pixelData = ((data[j] & 0x02) >> 1) * 0xFF;
+            pixelData = ((data[Var._DepthOffset + j] & 0x02) >> 1) * 0xFF;
             depthBitmap.setPixel(xIndex+1, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
-            pixelData = ((data[j] & 0x04) >> 2) * 0xFF;
+            pixelData = ((data[Var._DepthOffset + j] & 0x04) >> 2) * 0xFF;
             depthBitmap.setPixel(xIndex+2, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
-            pixelData = ((data[j] & 0x08) >> 3) * 0xFF;
+            pixelData = ((data[Var._DepthOffset + j] & 0x08) >> 3) * 0xFF;
             depthBitmap.setPixel(xIndex+3, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
-            pixelData = ((data[j] & 0x10) >> 4) * 0xFF;
+            pixelData = ((data[Var._DepthOffset + j] & 0x10) >> 4) * 0xFF;
             depthBitmap.setPixel(xIndex+4, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
-            pixelData = ((data[j] & 0x20) >> 5) * 0xFF;
+            pixelData = ((data[Var._DepthOffset + j] & 0x20) >> 5) * 0xFF;
             depthBitmap.setPixel(xIndex+5, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
-            pixelData = ((data[j] & 0x40) >> 6) * 0xFF;
+            pixelData = ((data[Var._DepthOffset + j] & 0x40) >> 6) * 0xFF;
             depthBitmap.setPixel(xIndex+6, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
-            pixelData = ((data[j] & 0x80) >> 7) * 0xFF;
+            pixelData = ((data[Var._DepthOffset + j] & 0x80) >> 7) * 0xFF;
             depthBitmap.setPixel(xIndex+7, yIndex, Color.argb(0xFF, pixelData, pixelData, pixelData));
         }
 
         //스켈레톤
         for(int i=0;i<20;i++) {
-            x[i] = data[Var._DepthBytesNum + 2*i];
-            y[i] = data[Var._DepthBytesNum + 2*i+1];
+            x[i] = data[Var._SkelOffset + 2*i];
+            y[i] = data[Var._SkelOffset + 2*i+1];
             // x 와 y 위치를 뷰 크기에 맞춤
             x[i] = x[i] * width / Var._DepthWidth;
             y[i] = y[i] * height / Var._DepthHeight;
         }
+
         threshold = (data[Var._CountOffset] & 0x7F) * height / Var._DepthHeight;
+        workoutType = data[0] & 0x7F;
     }
 }
 
