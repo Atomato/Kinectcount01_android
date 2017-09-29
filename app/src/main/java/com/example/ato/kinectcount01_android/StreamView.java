@@ -24,7 +24,7 @@ public class StreamView extends View {
     private int[] x;
     private int[] y;
     private int threshold;
-    private int workoutType = 2; //2는 null
+    private int workoutType = 3; //2는 null
     private int height;
     private int width;
     public Bitmap depthBitmap;
@@ -107,6 +107,10 @@ public class StreamView extends View {
             case 1:
                 canvas.drawText("Biceps", 10, 150, paintText);
                 canvas.drawText("Curl", 10, 320, paintText);
+                break;
+            case 2:
+                canvas.drawText("Shoulder", 10, 150, paintText);
+                canvas.drawText("Press", 10, 320, paintText);
                 break;
             default:
                 break;
